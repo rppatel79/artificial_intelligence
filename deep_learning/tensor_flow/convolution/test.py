@@ -12,11 +12,9 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPool2D
 
 TMP_DIR = "tmp/"
-IMG_SIZE = 400
 
-
-def resize_image(img_array):
-    return cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
+def resize_image(img_array, image_size : int):
+    return cv2.resize(img_array, (image_size, image_size))
 
 
 def show_image(img_array):
@@ -24,7 +22,7 @@ def show_image(img_array):
     plt.show()
 
 
-def create_training_data(data_dir: str):
+def create_training_data(data_dir: str, image_size:int):
     image_and_classnum = []
 
     class_num = 0
@@ -39,7 +37,7 @@ def create_training_data(data_dir: str):
             try:
                 img_array = cv2.imread(os.path.join(path, img),
                                        cv2.IMREAD_GRAYSCALE)
-                image_and_classnum.append([resize_image(img_array), class_num])
+                image_and_classnum.append([resize_image(img_array,image_size), class_num])
 
             except Exception as e:
                 print("Issue while processing ["+img+"]"+str(e))
@@ -88,23 +86,30 @@ def load_files(data_type: str):
 if __name__ == '__main__':
     args = sys.argv[1:]
     data_dir = args[0]
+    image_size = int(args[1])
+    batch_size = int(args[2])
 
     base_path = os.path.basename(data_dir)
     if pathlib.Path(file_name(base_path,True)).is_file() and pathlib.Path(file_name(base_path,False)).is_file():
         print("Loading cached set from [", file_name(base_path,True), ",", file_name(base_path,False),"]")
         X, y = load_files(base_path)
+        print("Loaded cached data sets [", data_dir, "]")
     else:
         print("Loading data set [", data_dir, "]")
-        X, y = create_training_data(data_dir)
+        X, y = create_training_data(data_dir,image_size)
         # show_image(X[0])
 
-        X = np.array(X).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
+        X = np.array(X).reshape(-1, image_size, image_size, 1)
         y = np.array(y)
 
+        print("Saving data set")
         write_files(base_path, X, y)
+        print("Cached data set in [", file_name(base_path, True), ",", file_name(base_path, False), "]")
 
+    # normalizing data
     X = X / 255.0
 
+    print("Creating neural network")
     model = Sequential()
     model.add(Conv2D(64, (3, 3), input_shape=X.shape[1:]))
     model.add(Activation("relu"))
@@ -120,5 +125,8 @@ if __name__ == '__main__':
     model.add(Dense(1))
     model.add(Activation("sigmoid"))
 
+    print("Compiling network")
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
-    model.fit(X, y, batch_size=4, validation_split=0.1, epochs=3)
+
+    print("Fitting data set")
+    model.fit(X, y, batch_size=batch_size, validation_split=0.3, epochs=3)

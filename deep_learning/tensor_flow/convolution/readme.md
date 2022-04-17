@@ -9,4 +9,6 @@ The code will
 - Fits the dataset
 
 Arguments
-- [1] - A relative or absolute path to train the neutral network.  This directory must contain subdirectories for each class
+- [1] - A relative or absolute path of images to train the neutral network.  This directory must contain subdirectories for each class
+- [2] - The 'image_size' that all images in the subdirectories are normalized too.  Values are likely 50-500
+- [3] - The 'batch_size' used for fitting the model
